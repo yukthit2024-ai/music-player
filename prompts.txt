@@ -1,0 +1,250 @@
+create an android application which is basically a music player
+The app name is "Vypeen Music Player"
+The main screen should have three horizontal bars with labels "Folder", "Files", "Playlist".
+These bars are swipable - to left and to right.
+Also they have left arrow and right arrow, at the ends of the bar.
+When "Folder"   bar is active/selected, then MP3 files from the currently selected Folder is played
+When "Files"    bar is active/selected, then MP3 files from the currently selected Folder is played
+When "Playlist" bar is active/selected, then MP3 files from the currently selected Playlist is played
+
+When right swipe(or right arrow clicked) is done on "Folder"   bar, then next folder (sibling folder) )is selected and MP3 files from the new Folder is played
+When right swipe(or right arrow clicked) is done on "Files"    bar, then next Mp3 file (sibling file) )is selected and that MP3 is played.  If last Mp3 is covered, the next sibling folder is selcted and mp3 from that is played.
+When right swipe(or right arrow clicked) is done on "Playlist" bar, then nextt playlist(sibling playlist)is selected and MP3 files from the new playlist is played
+
+Similar behaviour is performed when left swipe(or left arrow) is done on the three bars.
+
+develop the app in java (not kotlin)
+Need a left side menu with items like "Settings", "Help", "About".
+for Help and About place a screen with some dummy data
+The left side menu is covering from top to bottom.  Even when menu is visible, it should not cover the app top bar and so on....
+use latest gradle version supported by github actions
+include gradle properties and gradle wrapper dependencies in the project
+
+Give me as a single prompt to give to an agent to achieve this
+
+-------------
+more prompts
+*   This app needs to be set as "Mock Location App" in the developer options
+
+*	the GPX file which is loaded , should be picked from a folder like "/sdcard/Fake_GPS_Locations".  Inside this folder a list of GPX files are expected.
+	Load all of these files into a dropdown on the main screen.
+	The user then selects one GPX file from the dropdown, and then clicks start button.
+	The app then reads that GPX file and uses those locations as fake GPS at configured intervals
+
+*   Do not give me powershell commands to run.  Only give me windows CMD commands to run
+*   In Developer options, when I want to set my app as Mock LocationApp, my app is not available in the list
+
+
+
+
+
+==============================================================================================================
+
+Here’s a **single, ready-to-use prompt** you can give to a coding agent (like Copilot, Devin, or similar) to generate your full Android app. It’s structured, explicit, and removes ambiguity so the agent produces a working project.
+
+---
+
+Create a complete Android application project in **Java (not Kotlin)** named **"Vypeen Music Player"** using the latest stable Android Gradle Plugin and Gradle version compatible with GitHub Actions.
+
+## Core Requirements
+
+### 1. App Overview
+
+* App Name: **Vypeen Music Player**
+* Language: **Java**
+* Minimum SDK: 24 or above
+* Target SDK: Latest available
+* Use AndroidX and Material Design components
+
+---
+
+## 2. Main Screen UI
+
+### Layout Structure
+
+* A top AppBar (Toolbar)
+* Below it, a horizontal section with **three selectable bars**:
+
+  * "Folder"
+  * "Files"
+  * "Playlist"
+
+### Behavior of Bars
+
+* Only one bar is **active/selected** at a time
+* Bars support:
+
+  * **Swipe left/right gestures**
+  * **Left arrow button (←)**
+  * **Right arrow button (→)**
+
+### Interaction Logic
+
+#### Folder Bar
+
+* Displays current folder
+* On selection: plays all MP3 files from current folder
+* On right swipe / right arrow:
+
+  * Move to next sibling folder
+  * Load and play MP3s from that folder
+* On left swipe / left arrow:
+
+  * Move to previous sibling folder
+
+#### Files Bar
+
+* Displays current MP3 file
+* On selection: plays that file
+* On right swipe / right arrow:
+
+  * Move to next MP3 file in folder
+  * If last file reached:
+
+    * Move to next sibling folder
+    * Play first MP3 in that folder
+* On left swipe / left arrow:
+
+  * Move to previous MP3 file
+
+#### Playlist Bar
+
+* Displays current playlist
+* On selection: plays playlist
+* On right swipe / right arrow:
+
+  * Move to next playlist
+* On left swipe / left arrow:
+
+  * Move to previous playlist
+
+---
+
+## 3. Music Playback
+
+* Use Android MediaPlayer API
+* Support:
+
+  * Play / Pause
+  * Auto-play next track
+* Load MP3 files from device storage
+* Request runtime permissions (READ_MEDIA_AUDIO or READ_EXTERNAL_STORAGE depending on SDK)
+
+---
+
+## 4. Navigation Drawer (Left Menu)
+
+* Implement a **full-height left navigation drawer**
+* It should NOT overlap the top AppBar
+* Menu items:
+
+  * Settings
+  * Help
+  * About
+
+### Menu Behavior
+
+* Clicking:
+
+  * **Help** → opens new Activity with dummy text
+  * **About** → opens new Activity with dummy text
+  * **Settings** → placeholder screen
+
+---
+
+## 5. Gestures
+
+* Implement swipe detection using GestureDetector or equivalent
+* Each bar independently reacts to swipe gestures
+
+---
+
+## 6. Architecture
+
+* Use simple MVC or MVVM (Java-based)
+* Separate:
+
+  * UI logic
+  * Media playback logic
+  * File/Folder traversal logic
+
+---
+
+## 7. File Handling
+
+* Traverse device storage:
+
+  * Identify folders containing MP3 files
+  * Maintain:
+
+    * List of folders
+    * List of files per folder
+    * Playlist (mock or saved locally)
+
+---
+
+## 8. UI Components
+
+* Use:
+
+  * RecyclerView (if needed)
+  * Material Buttons or CardViews for bars
+* Highlight active bar visually
+
+---
+
+## 9. Project Setup
+
+### Gradle
+
+* Use **latest Gradle wrapper compatible with GitHub Actions**
+* Include:
+
+  * gradle-wrapper.properties
+  * gradle.properties
+  * project-level and app-level build.gradle
+
+### Dependencies
+
+* AndroidX
+* Material Components
+
+---
+
+## 10. GitHub Actions Compatibility
+
+* Ensure project builds using standard workflow:
+
+  * ./gradlew build
+* No deprecated dependencies
+
+---
+
+## 11. Deliverables
+
+Generate full project structure including:
+
+* All Java source files
+* XML layouts
+* AndroidManifest.xml
+* Gradle files (wrapper included)
+* Navigation drawer implementation
+* Media playback logic
+* Gesture handling
+
+---
+
+## 12. Extra Notes
+
+* Code must be clean, modular, and well-commented
+* Avoid Kotlin entirely
+* Ensure app runs on emulator without crashes
+* Use dummy data where real implementation is complex (e.g., playlists)
+
+---
+
+Output the full project as a structured file tree with contents of each file.
+
+---
+
+If you want, I can also generate the **actual project code directly** instead of a prompt.
