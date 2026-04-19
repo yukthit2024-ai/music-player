@@ -10,8 +10,14 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.os.Handler;
+import android.os.Looper;
+
+import java.util.Collections;
+import java.util.Random;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -46,6 +52,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     
     // Selection state: 0=Folder, 1=File, 2=Playlist
     private int activeBarIndex = 0;
+
+    // New UI Components for Controls
+    private ImageButton btnPlayPause, btnShuffle, btnLoop;
+    private SeekBar seekProgress, seekVolume;
+    private TextView txtCurrentTime, txtTotalTime;
+
+    // Playback State
+    private boolean isShuffleEnabled = false;
+    private boolean isLoopOneEnabled = false;
+    private Handler progressHandler = new Handler(Looper.getMainLooper());
+    private Runnable progressUpdater;
+    private List<Track> shuffledTracks = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +120,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         txtFile = findViewById(R.id.txt_file_name);
         txtPlaylist = findViewById(R.id.txt_playlist_name);
         txtNowPlaying = findViewById(R.id.txt_now_playing);
+
+        // Control Panel Views
+        btnPlayPause = findViewById(R.id.btn_play_pause);
+        btnShuffle = findViewById(R.id.btn_shuffle);
+        btnLoop = findViewById(R.id.btn_loop);
+        seekProgress = findViewById(R.id.seekbar_progress);
+        seekVolume = findViewById(R.id.seekbar_volume);
+        txtCurrentTime = findViewById(R.id.txt_current_time);
+        txtTotalTime = findViewById(R.id.txt_total_time);
+
+        setupControlListeners();
+        setupProgressUpdater();
 
         // Set initial selection
         updateActiveBar(0);
@@ -161,6 +191,60 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         findViewById(R.id.btn_playlist_right).setOnClickListener(v -> nextPlaylist());
     }
 
+    private void setupControlListeners() {
+        btnPlayPause.setOnClickListener(v -> togglePlayPause());
+        findViewById(R.id.btn_next).setOnClickListener(v -> nextFile());
+        findViewById(R.id.btn_prev).setOnClickListener(v -> prevFile());
+        
+        btnShuffle.setOnClickListener(v -> toggleShuffle());
+        btnLoop.setOnClickListener(v -> toggleLoop());
+
+        seekProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    txtCurrentTime.setText(formatTime(progress));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                progressHandler.removeCallbacks(progressUpdater);
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                playbackManager.seekTo(seekBar.getProgress());
+                if (playbackManager.isPlaying()) {
+                    progressHandler.postDelayed(progressUpdater, 1000);
+                }
+            }
+        });
+
+        seekVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                playbackManager.setVolume(progress / 100f);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void setupProgressUpdater() {
+        progressUpdater = new Runnable() {
+            @Override
+            public void run() {
+                if (playbackManager != null && playbackManager.isPlaying()) {
+                    int currentPos = playbackManager.getCurrentPosition();
+                    seekProgress.setProgress(currentPos);
+                    txtCurrentTime.setText(formatTime(currentPos));
+                    progressHandler.postDelayed(this, 1000);
+                }
+            }
+        };
+    }
+
     private void setActiveBar(int index) {
         if (activeBarIndex != index) {
             updateActiveBar(index);
@@ -194,29 +278,37 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void nextFile() {
         if (folders.isEmpty()) return;
-        Folder currentFolder = folders.get(currentFolderIndex);
-        if (currentFileIndex < currentFolder.getTracks().size() - 1) {
-            currentFileIndex++;
+        if (isShuffleEnabled && !shuffledTracks.isEmpty()) {
+            currentFileIndex = (currentFileIndex + 1) % shuffledTracks.size();
+            playTrack(shuffledTracks.get(currentFileIndex));
         } else {
-            // Move to next folder
-            currentFolderIndex = (currentFolderIndex + 1) % folders.size();
-            currentFileIndex = 0;
+            Folder currentFolder = folders.get(currentFolderIndex);
+            if (currentFileIndex < currentFolder.getTracks().size() - 1) {
+                currentFileIndex++;
+            } else {
+                currentFolderIndex = (currentFolderIndex + 1) % folders.size();
+                currentFileIndex = 0;
+            }
+            updateUI();
+            playCurrentFile();
         }
-        updateUI();
-        playCurrentFile();
     }
 
     private void prevFile() {
         if (folders.isEmpty()) return;
-        if (currentFileIndex > 0) {
-            currentFileIndex--;
+        if (isShuffleEnabled && !shuffledTracks.isEmpty()) {
+            currentFileIndex = (currentFileIndex - 1 + shuffledTracks.size()) % shuffledTracks.size();
+            playTrack(shuffledTracks.get(currentFileIndex));
         } else {
-            // Move to prev folder's last file
-            currentFolderIndex = (currentFolderIndex - 1 + folders.size()) % folders.size();
-            currentFileIndex = folders.get(currentFolderIndex).getTracks().size() - 1;
+            if (currentFileIndex > 0) {
+                currentFileIndex--;
+            } else {
+                currentFolderIndex = (currentFolderIndex - 1 + folders.size()) % folders.size();
+                currentFileIndex = folders.get(currentFolderIndex).getTracks().size() - 1;
+            }
+            updateUI();
+            playCurrentFile();
         }
-        updateUI();
-        playCurrentFile();
     }
 
     private void nextPlaylist() {
@@ -237,30 +329,90 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (folders.isEmpty()) return;
         Folder folder = folders.get(currentFolderIndex);
         if (!folder.getTracks().isEmpty()) {
-            playbackManager.play(folder.getTracks().get(0).getPath());
-            updateNowPlaying(folder.getTracks().get(0).getTitle());
+            if (isShuffleEnabled) {
+                randomizeCurrentList();
+                playTrack(shuffledTracks.get(0));
+            } else {
+                playTrack(folder.getTracks().get(0));
+            }
         }
     }
 
     private void playCurrentFile() {
         if (folders.isEmpty()) return;
         Track track = folders.get(currentFolderIndex).getTracks().get(currentFileIndex);
-        playbackManager.play(track.getPath());
-        updateNowPlaying(track.getTitle());
+        playTrack(track);
     }
 
     private void playCurrentPlaylist() {
         if (playlists.isEmpty()) return;
         Playlist playlist = playlists.get(currentPlaylistIndex);
         if (!playlist.getTracks().isEmpty()) {
-            playbackManager.play(playlist.getTracks().get(0).getPath());
-            updateNowPlaying(playlist.getTracks().get(0).getTitle());
+            playTrack(playlist.getTracks().get(0));
         }
     }
 
+    private void playTrack(Track track) {
+        playbackManager.play(track.getPath());
+        updateNowPlaying(track.getTitle());
+        
+        // Setup Seek Bar
+        progressHandler.removeCallbacks(progressUpdater);
+        seekProgress.setMax(playbackManager.getDuration());
+        seekProgress.setProgress(0);
+        txtTotalTime.setText(formatTime(playbackManager.getDuration()));
+        txtCurrentTime.setText("0:00");
+        progressHandler.postDelayed(progressUpdater, 1000);
+        
+        btnPlayPause.setImageResource(R.drawable.ic_pause);
+    }
+
+    private void togglePlayPause() {
+        if (playbackManager.isPlaying()) {
+            playbackManager.pause();
+            btnPlayPause.setImageResource(R.drawable.ic_play);
+            progressHandler.removeCallbacks(progressUpdater);
+        } else {
+            playbackManager.resume();
+            btnPlayPause.setImageResource(R.drawable.ic_pause);
+            progressHandler.postDelayed(progressUpdater, 1000);
+        }
+    }
+
+    private void toggleShuffle() {
+        isShuffleEnabled = !isShuffleEnabled;
+        btnShuffle.setSelected(isShuffleEnabled);
+        btnShuffle.setAlpha(isShuffleEnabled ? 1.0f : 0.5f);
+        if (isShuffleEnabled) {
+            randomizeCurrentList();
+        }
+    }
+
+    private void toggleLoop() {
+        isLoopOneEnabled = !isLoopOneEnabled;
+        btnLoop.setSelected(isLoopOneEnabled);
+        btnLoop.setAlpha(isLoopOneEnabled ? 1.0f : 0.5f);
+    }
+
+    private void randomizeCurrentList() {
+        if (folders.isEmpty()) return;
+        shuffledTracks = new ArrayList<>(folders.get(currentFolderIndex).getTracks());
+        Collections.shuffle(shuffledTracks);
+    }
+
+    private String formatTime(int msec) {
+        int sec = msec / 1000;
+        int min = sec / 60;
+        sec = sec % 60;
+        return String.format("%d:%02d", min, sec);
+    }
+
     private void playNextAuto() {
-        // Logic for auto-play next. For now, just next file.
-        nextFile();
+        if (isLoopOneEnabled) {
+            playCurrentFile();
+        } else {
+            nextFile();
+        }
     }
 
     private void updateUI() {

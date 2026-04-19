@@ -59,6 +59,32 @@ public class PlaybackManager {
         }
     }
 
+    public void seekTo(int msec) {
+        if (mediaPlayer != null) {
+            mediaPlayer.seekTo(msec);
+        }
+    }
+
+    public int getDuration() {
+        if (mediaPlayer != null && (currentPath != null)) {
+            return mediaPlayer.getDuration();
+        }
+        return 0;
+    }
+
+    public int getCurrentPosition() {
+        if (mediaPlayer != null) {
+            return mediaPlayer.getCurrentPosition();
+        }
+        return 0;
+    }
+
+    public void setVolume(float volume) {
+        if (mediaPlayer != null) {
+            mediaPlayer.setVolume(volume, volume);
+        }
+    }
+
     public void resume() {
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
