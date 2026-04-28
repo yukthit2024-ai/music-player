@@ -1,6 +1,7 @@
 package com.vypeensoft.vypeenmusicplayer;
 
 import android.os.Bundle;
+import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class AboutActivity extends AppCompatActivity {
@@ -11,6 +12,17 @@ public class AboutActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("About");
+        }
+
+        TextView tvAppVersion = findViewById(R.id.tvAppVersion);
+        if (tvAppVersion != null) {
+            String versionInfo = String.format("Version: %s\nBuild: %s\nGit SHA: %s\nGit SHA Full: %s\nGit Tag: %s",
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.BUILD_TIMESTAMP,
+                    BuildConfig.GIT_SHA,
+                    BuildConfig.GIT_SHA_FULL,
+                    BuildConfig.GIT_TAG);
+            tvAppVersion.setText(versionInfo);
         }
     }
 
