@@ -23,6 +23,16 @@ public class MediaScanner {
 
     public static void scanMedia(Context context, ScanCallback callback) {
         new Thread(() -> {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("MusicPlayerPrefs", Context.MODE_PRIVATE);
+            String savedPaths = prefs.getString("scan_folders", "");
+            String[] rawPaths = savedPaths.split("\n");
+            final java.util.List<String> allowedPaths = new java.util.ArrayList<>();
+            for (String p : rawPaths) {
+                if (!p.trim().isEmpty()) {
+                    allowedPaths.add(p.trim());
+                }
+            }
+
             ContentResolver contentResolver = context.getContentResolver();
             Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
             String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
@@ -38,7 +48,22 @@ public class MediaScanner {
                 do {
                     String thisTitle = cursor.getString(titleColumn);
                     String thisPath = cursor.getString(pathColumn);
-                    
+
+                    boolean isAllowed = true;
+                    if (!allowedPaths.isEmpty()) {
+                        isAllowed = false;
+                        for (String allowedPath : allowedPaths) {
+                            if (thisPath.startsWith(allowedPath)) {
+                                isAllowed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isAllowed) {
+                        continue;
+                    }
+
                     File file = new File(thisPath);
                     String folderPath = file.getParent();
                     String folderName = "Unknown";

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/primary_dark">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Audio Folder Paths"
+        android:textColor="@color/accent_vibrant"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter folder paths (one per line) to restrict audio scanning to those folders. Leave empty to scan all folders."
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etFolderPaths"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="top|start"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:hint="/storage/emulated/0/Music\n/storage/emulated/0/Downloads"
+        android:textColorHint="#888888"
+        android:textColor="@android:color/white"
+        android:background="#333333"
+        android:padding="12dp"
+        android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/btnSaveSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Save Settings"
+        android:backgroundTint="@color/accent_vibrant"
+        android:textColor="@color/primary_dark"
+        android:textStyle="bold" />
+
+</LinearLayout>
