@@ -18,7 +18,7 @@ import java.util.Map;
 public class MediaScanner {
 
     public interface ScanCallback {
-        void onScanComplete(List<Folder> folders);
+        void onScanComplete(List<Folder> folders, List<Playlist> playlists);
     }
 
     public static void scanMedia(Context context, ScanCallback callback) {
@@ -88,7 +88,84 @@ public class MediaScanner {
             // Sort folders by name
             Collections.sort(folderList, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
 
-            callback.onScanComplete(folderList);
+            List<Playlist> playlistList = new ArrayList<>();
+            Uri filesUri = MediaStore.Files.getContentUri("external");
+            String selectionPl = MediaStore.Files.FileColumns.DATA + " LIKE '%.m3u' OR " +
+                                 MediaStore.Files.FileColumns.DATA + " LIKE '%.pls' OR " +
+                                 MediaStore.Files.FileColumns.DATA + " LIKE '%.m3u8'";
+            Cursor plCursor = null;
+            try {
+                plCursor = contentResolver.query(filesUri, null, selectionPl, null, null);
+                if (plCursor != null && plCursor.moveToFirst()) {
+                    int pathColumnPl = plCursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
+                    int titleColumnPl = plCursor.getColumnIndex(MediaStore.Files.FileColumns.TITLE);
+                    if (titleColumnPl == -1) {
+                        titleColumnPl = plCursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                    }
+
+                    do {
+                        if (pathColumnPl == -1) continue;
+                        String path = plCursor.getString(pathColumnPl);
+                        if (path == null) continue;
+                        
+                        String title = "Unknown";
+                        if (titleColumnPl != -1) {
+                            title = plCursor.getString(titleColumnPl);
+                        }
+                        if (title == null || title.equals("Unknown")) {
+                             File f = new File(path);
+                             title = f.getName();
+                        }
+
+                        Playlist playlist = new Playlist(title);
+                        parsePlaylist(path, playlist);
+                        playlistList.add(playlist);
+
+                    } while (plCursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (plCursor != null) {
+                    plCursor.close();
+                }
+            }
+
+            // Sort playlists by name
+            Collections.sort(playlistList, (p1, p2) -> p1.getName().compareToIgnoreCase(p2.getName()));
+
+            callback.onScanComplete(folderList, playlistList);
         }).start();
+    }
+
+    private static void parsePlaylist(String path, Playlist playlist) {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(path));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                if (line.toLowerCase().startsWith("file") && line.contains("=")) {
+                    // PLS format: File1=path
+                    String[] parts = line.split("=", 2);
+                    if (parts.length == 2) {
+                        line = parts[1].trim();
+                    }
+                }
+                
+                File trackFile = new File(line);
+                if (!trackFile.isAbsolute()) {
+                    File plFile = new File(path);
+                    trackFile = new File(plFile.getParent(), line);
+                }
+                
+                if (trackFile.exists()) {
+                    playlist.addTrack(new Track(trackFile.getAbsolutePath(), trackFile.getName(), trackFile.getParent()));
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

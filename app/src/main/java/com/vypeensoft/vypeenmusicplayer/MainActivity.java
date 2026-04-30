@@ -89,9 +89,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
 
         checkPermissions();
-        
-        // Setup dummy playlists
-        setupDummyPlaylists();
     }
 
     private void setupToolbar() {
@@ -315,12 +312,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (playlists.isEmpty()) return;
         currentPlaylistIndex = (currentPlaylistIndex + 1) % playlists.size();
         updateUI();
+        playCurrentPlaylist();
     }
 
     private void prevPlaylist() {
         if (playlists.isEmpty()) return;
         currentPlaylistIndex = (currentPlaylistIndex - 1 + playlists.size()) % playlists.size();
         updateUI();
+        playCurrentPlaylist();
     }
 
     // --- Playback Logic ---
@@ -461,10 +460,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void loadMedia() {
-        MediaScanner.scanMedia(this, folderList -> {
+        MediaScanner.scanMedia(this, (folderList, playlistList) -> {
             runOnUiThread(() -> {
                 this.folders = folderList;
-                if (!folders.isEmpty()) {
+                this.playlists = playlistList;
+                if (!folders.isEmpty() || !playlists.isEmpty()) {
                     updateUI();
                 } else {
                     Toast.makeText(this, R.string.no_media_found, Toast.LENGTH_LONG).show();
